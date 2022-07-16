@@ -135,6 +135,7 @@ COPY --from=build-spark /spark/dist/data /opt/spark/data
 
 # configure aws glue data catalog as the Hive Metastore client
 COPY ./conf/hive-site.xml /opt/spark/conf/hive-site.xml
+COPY ./conf/log4j.properties /opt/spark/conf/log4j.properties
 
 ENV SPARK_HOME /opt/spark
 
