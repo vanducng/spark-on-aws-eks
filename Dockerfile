@@ -1,12 +1,12 @@
-ARG spark_version=3.1.2
-ARG hadoop_version=3.3.0
+ARG spark_version=3.2.1
+ARG hadoop_version=3.3.1
 ARG hadoop_profile=3.2
 ARG hive_version=2.3.7
 ARG maven_version=3.6.3
 
 # Spark runtime build options
 ARG scala_version=2.12
-ARG aws_java_sdk_version=1.11.797
+ARG aws_java_sdk_version=1.11.1034
 
 
 FROM python:3.7-slim-stretch AS build-deps
@@ -97,10 +97,8 @@ RUN rm -f /spark/dist/jars/guava-14.0.1.jar
 RUN wget --quiet https://repo1.maven.org/maven2/com/google/guava/guava/23.0/guava-23.0.jar -P /spark/dist/jars/
 RUN chmod 0644 /spark/dist/jars/guava-23.0.jar
 
-# save the final spark distribution
-# SAVE ARTIFACT /spark/dist
 
-FROM openjdk:8-jre-slim
+FROM openjdk:8-jdk-slim-buster
 
 ARG spark_uid=185
 # Before building the docker image, first build and make a Spark distribution following
@@ -150,21 +148,24 @@ USER 0
 
 RUN mkdir ${SPARK_HOME}/python
 RUN apt-get update && \
-    apt install -y python3 python3-pip && \
-    pip3 install --upgrade pip setuptools && \
+    apt-get install -y --no-install-recommends \
+    git \
+    ssh-client \
+    python3.7 \
+    python3-pip \
+    python3.7-dev \
+    python3-setuptools \
+    python3-wheel && \
     # Removed the .cache to save space
-    rm -r /root/.cache && rm -rf /var/cache/apt/*
+    rm -rf /var/cache/apt/*
 
 COPY --from=build-spark /spark/dist/python/pyspark ${SPARK_HOME}/python/pyspark
 COPY --from=build-spark /spark/dist/python/lib ${SPARK_HOME}/python/lib
 
-# COPY requirements.txt .
-# RUN pip3 install --no-cache-dir -r requirements.txt
-
 ENV PATH "${PATH}:${SPARK_HOME}/bin"
 
 # default pythonpath for pyspark
-ENV PYTHONPATH ${SPARK_HOME}/python/lib/pyspark.zip:${SPARK_HOME}/python/lib/py4j-*.zip
+ENV PYTHONPATH ${SPARK_HOME}/python/lib/pyspark.zip:${SPARK_HOME}/python/lib/py4j-*.zip:/usr/local/lib/python3.7/dist-packages
 
 WORKDIR /opt/spark/work-dir
 ENTRYPOINT [ "/opt/entrypoint.sh" ]
